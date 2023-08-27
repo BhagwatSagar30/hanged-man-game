@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import {
   getHighestScore,
   getRandomWord,
@@ -15,6 +15,10 @@ import {
 } from "../utils/Utils";
 import { HIGH_SCORE, MAX_COUNT } from "../constants/Constants";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import Button from "../components/Button";
+import InputText from "../components/InputText";
+import { useStateWithCallback } from "../customHooks/useStateWithCallback";
+import WordWithDash from "../components/WordWithDash";
 
 type Props = {};
 
@@ -64,10 +68,18 @@ const HangedManGame = memo((props: Props) => {
   }, []);
 
   useEffect(() => {
-    const res = randomWord
+    const enterWord = randomWord
       .split("")
-      .map((ltr) => (userEnteredCharList.includes(ltr) ? ltr : "_"));
-    if (randomWord === res.join("")) {
+      .map((char) => (userEnteredCharList.includes(char) ? char : "_"));
+
+    if (livesAvailable === 0) {
+      alert("You loose. Please try again with new word");
+      clearData();
+      setplayerScore(0);
+      return;
+    }
+
+    if (randomWord === enterWord.join("")) {
       alert("You Win");
       clearData();
       setplayerScore((prev) => prev + 1);
@@ -86,12 +98,6 @@ const HangedManGame = memo((props: Props) => {
   };
 
   const handleSubmit = () => {
-    if (livesAvailable === 1) {
-      alert("You loose. Please try again with new word");
-      clearData();
-      setplayerScore(0);
-      return;
-    }
     if (!userEnteredCharList.includes(inputChar)) {
       setUserEnteredCharList([...userEnteredCharList, inputChar]);
     }
@@ -102,15 +108,18 @@ const HangedManGame = memo((props: Props) => {
     setInputChar("");
   };
 
-  const handleInputChar = (value) => {
-    const regex = /^[A-Za-z]+$/; //take only char not other value
-    if (value.length !== 0 && regex.test(value)) {
-      setInputChar(value);
-      setDisable(false);
-    } else {
-      setInputChar("");
-    }
-  };
+  const handleInputTextChange = useCallback(
+    (value) => {
+      const regex = /^[A-Za-z]+$/; //take only char not other value
+      if (value.length !== 0 && regex.test(value)) {
+        setInputChar(value);
+        setDisable(false);
+      } else {
+        setInputChar("");
+      }
+    },
+    [setInputChar, setDisable]
+  );
 
   return (
     <SafeAreaView style={styles.mainView}>
@@ -121,37 +130,17 @@ const HangedManGame = memo((props: Props) => {
       <Text style={styles.gameNameTitle}>
         {"Player score : " + playerScore}
       </Text>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          alignSelf: "center",
-        }}
-      >
-        {randomWord.split("").map((char, index) => (
-          <Text
-            style={(styles.gameNameTitle, { fontSize: 30, padding: 7 })}
-            key={char + index}
-          >
-            {userEnteredCharList.includes(char) ? char : "_"}
-          </Text>
-        ))}
-      </View>
-      <TextInput
-        style={styles.inputText}
-        maxLength={1}
-        value={inputChar}
-        onChangeText={handleInputChar}
-        autoCapitalize={"none"}
+
+      <WordWithDash
+        word={randomWord}
+        userEnteredCharList={userEnteredCharList}
+      />
+      <InputText
+        inputChar={inputChar}
+        handleInputTextChange={handleInputTextChange}
       />
 
-      <Pressable
-        style={[styles.button, { opacity: isDisable ? 0.3 : 1 }]}
-        onPress={handleSubmit}
-        disabled={isDisable}
-      >
-        <Text style={styles.buttonTitle}>{"Submit"}</Text>
-      </Pressable>
+      <Button handleSubmit={handleSubmit} isDisable={isDisable} />
 
       <Text style={styles.gameNameTitle}>
         {"Lives Available = " + livesAvailable}
@@ -175,23 +164,4 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: "center",
   },
-  inputText: {
-    height: 40,
-    width: 60,
-    borderRadius: 3,
-    backgroundColor: "#ebebeb",
-    marginVertical: 30,
-    alignSelf: "center",
-    textAlign: "center",
-  },
-  button: {
-    marginVertical: 20,
-    backgroundColor: "#99bbff",
-    height: 40,
-    width: 100,
-    justifyContent: "center",
-    borderRadius: 6,
-    alignSelf: "center",
-  },
-  buttonTitle: { color: "#000", textAlign: "center" },
 });
