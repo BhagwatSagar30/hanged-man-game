@@ -29,7 +29,8 @@ const HangedManGame = memo((props: Props) => {
   const [playerScore, setplayerScore] = useState(0);
   const [highestScore, sethighestScore] = useState(0);
   const [isDisable, setDisable] = useState(true);
-  const [livesAvailable, setLivesAvailable] = useState(MAX_COUNT);
+  // const [livesAvailable, setLivesAvailable] = useState(MAX_COUNT);
+  const [livesAvailable, setLivesAvailable] = useStateWithCallback(MAX_COUNT);
   const { getItem, setItem } = useAsyncStorage(HIGH_SCORE);
 
   /**
@@ -102,7 +103,7 @@ const HangedManGame = memo((props: Props) => {
       setUserEnteredCharList([...userEnteredCharList, inputChar]);
     }
     if (!randomWord.includes(inputChar)) {
-      setLivesAvailable((prev) => prev - 1);
+      setLivesAvailable(livesAvailable - 1);
     }
     setDisable(true);
     setInputChar("");
